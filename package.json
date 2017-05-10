@@ -1,0 +1,20 @@
+{
+  "name": "@interiot/node-red-contrib-fiware-sth",
+  "version": "0.8.5",
+  "description": "Nodo fiware-sth",
+  "dependencies": {
+    "follow-redirects": "1.2.3",
+    "simple-oauth2": "^1.1.0",
+    "when": "~3.x"
+  },
+  "author": {
+    "name": "Julián Martínez",
+    "company": "Prodevelop S.L"
+  },
+  "node-red": {
+    "nodes": {
+      "fiware-sth-raw": "app/fiware-sth.js"
+    }
+  },
+  "license": "Apache-2.0"
+}

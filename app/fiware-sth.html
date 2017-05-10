@@ -1,0 +1,273 @@
+<!-- INTER-IoT. Interoperability of IoT Platforms.
+INTER-IoT is a R&D project which has received funding from the European
+Union’s Horizon 2020 research and innovation programme under grant
+agreement No 687283.
+
+Copyright (C) 2016-2018, by (Author's company of this file):
+  - Prodevelop S.L.
+
+
+For more information, contact:
+  - @author <a href="mailto:jmartinez@prodevelop.es">Julian Martinez</a>
+  - Project coordinator:  <a href="mailto:coordinator@inter-iot.eu"></a>
+
+
+This code is licensed under the ASL 2.0 license, available at the root
+application directory. -->
+
+
+<script type="text/javascript">
+    RED.nodes.registerType('fiware-sth-raw', {
+        category: 'function',
+        color: '#3FADB5',
+        defaults: {
+            name: {
+                value: ""
+            },
+            service: {
+                type: "fiware-sth-service",
+                required: true
+            },
+            entype: {
+                value: "",
+                required: true
+            },
+            attr: {
+                value: "",
+                required: true
+            },
+            fiwareServer: {
+                value: "",
+                required: true
+            },
+            fiwarePath: {
+                value: "/",
+                required: true,
+                validate: RED.validators.regex(/^\//)
+            },
+            lastN: {
+                value: 0,
+                validate: RED.validators.number()
+            },
+            period: {
+                value: 0
+            }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "fiware-sth.png",
+        label: function() {
+            return this.name || "fiware-sth-raw";
+        }
+    });
+
+
+    RED.nodes.registerType('fiware-sth-service', {
+        category: 'config',
+        defaults: {
+            name: {
+                value: ""
+            },
+            url: {
+                value: ""
+            },
+            port: {
+                value: "",
+                validate: RED.validators.number(),
+                required: true
+            },
+            authServerUri: {
+                value: "http://localhost:8000",
+                required: true
+            },
+            authorizePath: {
+                value: "/oauth2/authorize",
+                required: false
+            },
+            tokenPath: {
+                value: "/oauth2/token",
+                required: false
+            }
+
+        },
+        credentials: {
+            access_token: {
+                type: "password"
+            },
+            oauth_token: {
+                type: "password"
+            },
+            appId: {
+                type: "password",
+                required: false
+            },
+            appSecret: {
+                type: "password",
+                required: false
+            }
+        },
+        label: function() {
+            return this.name || this.namespace || "STH Service";
+        },
+        oneditprepare: function() {
+
+            $("#form-row-node-config-oauth2").hide();
+            $("#form-row-node-config-oauth2-advanced").hide();
+            if (this.credentials.has_appId && this.credentials.has_appSecret) {
+                $("#form-row-node-config-oauth2").show();
+                $("#node-config-input-useAuth").prop('checked', true);
+                var buttonText = "Login"
+            } else {
+                var buttonText = "Configure, deploy this node and come again to continue"
+            }
+
+            var sthServiceId = this.id;
+            var pathname = document.location.pathname;
+            if (pathname.slice(-1) != "/") {
+                pathname += "/";
+            }
+            var callback = encodeURIComponent(location.protocol + "//" + location.hostname + ":" + location.port + pathname + "sthServer/login/callback");
+            var completeLink = "sthServer/login/auth?state=" + sthServiceId + "&callback=" + callback;
+            $("#login-link").html('<div style="text-align: center; margin-top: 20px; "><a class="editor-button" id="button-login" href="' + completeLink + '" target="_blank">' + buttonText + '</a></div>');
+
+
+            // this.credentials.oauth_token
+            $("#node-config-input-useAuth").change(function() {
+                if ($(this).is(":checked")) {
+                    $("#form-row-node-config-oauth2").show();
+                } else {
+                    $("#form-row-node-config-oauth2").hide();
+                }
+            });
+            $("#node-config-input-useAuth-advanced").change(function() {
+                if ($(this).is(":checked")) {
+                    $("#form-row-node-config-oauth2-advanced").show();
+                } else {
+                    $("#form-row-node-config-oauth2-advanced").hide();
+                }
+            });
+        },
+        oneditsave: function() {
+            if ($("#node-config-input-useAuth").is(":checked")) {
+                $("#form-row-node-config-oauth2").show();
+            } else {
+                $("#form-row-node-config-oauth2").hide();
+            }
+        }
+    });
+</script>
+
+
+
+<script type="text/x-red" data-template-name="fiware-sth-raw">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i>Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-service"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-service">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-entype"><i class="icon-tag"></i> <span>Entity type</span></label>
+        <input type="text" id="node-input-entype">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-attr"><i class="icon-tag"></i> <span>Attribute</span></label>
+        <input type="text" id="node-input-attr">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-fiwareServer"><i class="fa fa-globe"></i> <span>Namespace</span></label>
+        <input type="text" id="node-input-fiwareServer">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-fiwarePath"><i class="fa fa-globe"></i> <span>Namespace path</span></label>
+        <input type="text" id="node-input-fiwarePath">
+    </div>
+
+    <hr/>
+
+    <div class="form-row">
+        <label for="node-input-period"><i class="fa fa-clock-o"></i> <span>Period</span></label>
+        <select id="node-input-period">
+          <option value=0>Ever</option>
+          <option value=3600000>Last hour</option>
+          <option value=21600000>Last 6 hours</option>
+          <option value=604800000>Last week</option>
+          <option value=2419200000>Last month</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-lastN"><i class="fa fa-plus"></i> <span>Limit</span></label>
+        <input type="number" id="node-input-lastN" min=0>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="fiware-sth-raw">
+    <p>The node fiware-sth provides information from FIWARE Short Time Historic (STH) - Comet.</p>
+</script>
+<script type="text/x-red" data-help-name="fiware-sth-service">
+    <p>Please save your changes and come back here to continue with the login</p>
+</script>
+
+<script type="text/x-red" data-template-name="fiware-sth-service">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> <span>Name</span></label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-config-input-url"><i class="fa fa-cloud"></i> STH URL</label>
+        <input type="text" id="node-config-input-url">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="fa fa-globe"></i> <span>Port</span></label>
+        <input type="text" id="node-config-input-port" style="width: 100px">
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <input type="checkbox" id="node-config-input-useAuth" style="display: inline-block; width: auto; vertical-align: top;">
+        <label style="width: 70%;"><span>Authorization</span></label>
+    </div>
+
+    <div class="form-row" id="form-row-node-config-oauth2">
+        <div class="form-row">
+            <label for="node-config-input-input-appId"><i class="fa fa-globe"></i> <span>APP ID</span></label>
+            <input type="password" id="node-config-input-appId">
+        </div>
+        <div class="form-row">
+            <label for="node-config-input-input-appSecret"><i class="fa fa-globe"></i> <span>APP SECRET</span></label>
+            <input type="password" id="node-config-input-appSecret">
+        </div>
+        <div class="form-row">
+            <label for="node-config-input-authServerUri"><i class="fa fa-cloud"></i>Token host</label>
+            <input type="text" id="node-config-input-authServerUri">
+        </div>
+        <div id="login-link"></div>
+                <div class="form-row">
+                    <label>&nbsp;</label>
+                    <input type="checkbox" id="node-config-input-useAuth-advanced" style="display: inline-block; width: auto; vertical-align: top;">
+                    <label style="width: 70%;"><span>Advanced authorization settings</span></label>
+                </div>
+                <div class="form-row" id="form-row-node-config-oauth2-advanced">
+                    <div class="form-row">
+                        <label for="node-config-input-authorizePath"><i class="fa fa-cloud"></i>Authorize path</label>
+                        <input type="text" id="node-config-input-authorizePath">
+                    </div>
+                    <div class="form-row">
+                        <label for="node-config-input-tokenPath"><i class="fa fa-cloud"></i>Token Path</label>
+                        <input type="text" id="node-config-input-tokenPath">
+                    </div>
+                </div>
+
+            </div>
+</script>
